@@ -58,73 +58,77 @@ function CustomTween.Body(NoClip, BodyVelocity, PlatformStand)
     end
 end
 
-function CustomTween.Create(Instance, TargetValue, Speed)
-    if not Instance then
+function CustomTween.Create(TargetInstance, TargetValue, Speed)
+    if not TargetInstance then
+        return
+    end
+
+    local HumanoidRootPart = TargetInstance:IsA("Model") and TargetInstance:FindFirstChild("HumanoidRootPart") or TargetInstance
+
+    if not HumanoidRootPart or not HumanoidRootPart:IsA("BasePart") then
         return
     end
 
     if Speed <= 0 then
-        if ActiveTweens[Instance] then
-            if ActiveTweens[Instance].Connection then
-                ActiveTweens[Instance].Connection:Disconnect()
+        if ActiveTweens[HumanoidRootPart] then
+            if ActiveTweens[HumanoidRootPart].Connection then
+                ActiveTweens[HumanoidRootPart].Connection:Disconnect()
             end
 
-            ActiveTweens[Instance] = nil
+            ActiveTweens[HumanoidRootPart] = nil
         end
 
-        if typeof(TargetValue) == "CFrame" and Instance:IsA("BasePart") then
-            Instance.CFrame = TargetValue
-        elseif typeof(TargetValue) == "Vector3" and Instance:IsA("BasePart") then
-            Instance.Position = TargetValue
+        if typeof(TargetValue) == "CFrame" then
+            HumanoidRootPart.CFrame = TargetValue
+        elseif typeof(TargetValue) == "Vector3" then
+            HumanoidRootPart.Position = TargetValue
         end
 
         return
     end
 
-    if ActiveTweens[Instance] then
-        if ActiveTweens[Instance].Target == TargetValue then
+    if ActiveTweens[HumanoidRootPart] then
+        if ActiveTweens[HumanoidRootPart].Target == TargetValue then
             return
         else
-            ActiveTweens[Instance].Connection:Disconnect()
+            ActiveTweens[HumanoidRootPart].Connection:Disconnect()
         end
     end
 
     local TweenState = { Target = TargetValue, Connection = nil }
-    ActiveTweens[Instance] = TweenState
+    ActiveTweens[HumanoidRootPart] = TweenState
 
     TweenState.Connection = RunService.Heartbeat:Connect(function(DeltaTime)
-        if not Instance.Parent or ActiveTweens[Instance] ~= TweenState then
+        if not HumanoidRootPart.Parent or ActiveTweens[HumanoidRootPart] ~= TweenState then
             TweenState.Connection:Disconnect()
             return
         end
 
-        if Instance:IsA("BasePart") then
-            local CurrentPos = Instance.Position
-            local TargetPos = (typeof(TargetValue) == "CFrame") and TargetValue.Position or TargetValue
-            local Distance = (TargetPos - CurrentPos).Magnitude
-            local MaxFrameDistance = Speed * DeltaTime
+        local CurrentPos = HumanoidRootPart.Position
+        local TargetPos = (typeof(TargetValue) == "CFrame") and TargetValue.Position or TargetValue
+        local Distance = (TargetPos - CurrentPos).Magnitude
+        local MaxFrameDistance = Speed * DeltaTime
 
-            if Distance <= MaxFrameDistance then
-                TweenState.Connection:Disconnect()
-                ActiveTweens[Instance] = nil
-                
-                if typeof(TargetValue) == "CFrame" then
-                    Instance.CFrame = TargetValue
-                else
-                    Instance.Position = TargetValue
-                end
-
-                return
-            end
-
-            local Direction = (TargetPos - CurrentPos).Unit
-            local NewPosition = CurrentPos + (Direction * MaxFrameDistance)
-
+        if Distance <= MaxFrameDistance then
+            TweenState.Connection:Disconnect()
+            ActiveTweens[HumanoidRootPart] = nil
+            
             if typeof(TargetValue) == "CFrame" then
-                Instance.CFrame = CFrame.new(NewPosition) * TargetValue.Rotation
+                HumanoidRootPart.CFrame = TargetValue
             else
-                Instance.Position = NewPosition
+                HumanoidRootPart.Position = TargetValue
             end
+
+            return
+        end
+
+        local Direction = (TargetPos - CurrentPos).Unit
+        local NewPosition = CurrentPos + (Direction * MaxFrameDistance)
+
+        if typeof(TargetValue) == "CFrame" then
+            HumanoidRootPart.CFrame = CFrame.new(NewPosition) * TargetValue.Rotation
+        else
+            HumanoidRootPart.Position = NewPosition
         end
     end)
 end
